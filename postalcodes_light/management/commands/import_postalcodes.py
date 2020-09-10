@@ -6,6 +6,7 @@ import zipfile
 
 import requests
 from django.core.management.base import BaseCommand
+from django.conf import settings
 
 from ...models import PostalCode
 
@@ -38,8 +39,14 @@ class Command(BaseCommand):
             country = country.upper()
             url = self.base_url % country
             self.stdout.write('Downloading and extracting %s...' % url)
+
             response = requests.get(url)
-            zipdata = zipfile.ZipFile(io.BytesIO(response.content))
+            if response.status_code == 200:
+                zipdata = zipfile.ZipFile(io.BytesIO(response.content))
+            else:
+                zipdata = zipfile.ZipFile(
+                    '{}/data/postal_codes_{}.zip'.format(settings.BASE_DIR, country))
+
             tmpdir = tempfile.mkdtemp()
             tmpfile = zipdata.extract('%s.txt' % country, path=tmpdir)
             self.stdout.write('Reading and updating postal codes...')
